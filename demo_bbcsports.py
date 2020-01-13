@@ -227,36 +227,13 @@ class ConvAE2(object):
 
 def ae_feature_clustering(CAE, X):
     CAE.restore()
-    # eng = matlab.engine.start_matlab()
-    # eng.addpath(r'/home/pan/workspace-eclipse/deep-subspace-clustering/SSC_ADMM_v1.1',nargout=0)
-    # eng.addpath(r'/home/pan/workspace-eclipse/deep-subspace-clustering/EDSC_release',nargout=0)
+
     Z = CAE.transform(X)
     sio.savemat('AE_YaleB.mat', dict(Z=Z))
 
     return
 
 
-# def train_face(Img, CAE, n_input, batch_size):
-#     it = 0
-#     display_step = 300
-#     save_step = 900
-#     _index_in_epoch = 0
-#     _epochs = 0
-#
-#     # CAE.restore()
-#     # train the network
-#     while True:
-#         batch_x, _index_in_epoch, _epochs = next_batch(Img, _index_in_epoch, batch_size, _epochs)
-#         batch_x = np.reshape(batch_x, [batch_size, n_input[0], n_input[1], 1])
-#         cost = CAE.partial_fit(batch_x)
-#         it = it + 1
-#         avg_cost = cost / (batch_size)
-#         if it % display_step == 0:
-#             print ("epoch: %.1d" % _epochs)
-#             print  ("cost: %.8f" % avg_cost)
-#         if it % save_step == 0:
-#             CAE.save_model()
-#     return
 
 def test_face_pretrain(Img, CAE, n_input):
     batch_x_test = Img[200:300, :]
@@ -582,18 +559,9 @@ def post_proC(C, K, d, alpha):
     uu, ss, _ = svd(C)
     UU = uu[:, :r]
     SS = ss[:r]
-    # print(uu.shape)
-    # print(ss.shape)
-    # print(r)
 
     U, S, _ = svds(C, k=r, v0=np.ones(C.shape[0]))
-    # U, S, _ = svds(C, k = r)
-    # print(UU)
-    # print(U)
-    # exit()
 
-    # U, S, _ = svds(C,k=r,v0 = np.ones(C.shape[0])).
-    # U, S, _ = svds(C,r,v0 = np.ones(C.shape[0]))
     U = U[:, ::-1]
     S = np.sqrt(S[::-1])
 
@@ -669,15 +637,6 @@ def test_face(Img, Label, CAE, num_class):
 
     return (1 - m), (1 - me)
 
-    # acc_ = np.array(acc_)
-    # m = np.mean(acc_)
-    # me = np.median(acc_)
-    # print("%d subjects:" % num_class)
-    # print("Mean: %.4f%%" % ((1 - m) * 100))
-    # print("Median: %.4f%%" % ((1 - me) * 100))
-    # print(acc_)
-
-    # return (1 - m), (1 - me)
 
 
 def train_face(Img, CAE, batch_size):
@@ -687,11 +646,7 @@ def train_face(Img, CAE, batch_size):
     _index_in_epoch = 0
     _epochs = 0
 
-    # CAE.restore()
-    # train the network
     max_num = 80001
-    # max_num = 150001
-    # iter = 0
     while it < max_num:
         batch_x, _index_in_epoch, _epochs = next_batch(Img, _index_in_epoch, batch_size, _epochs)
         batch_x = np.reshape(batch_x, [batch_size, Img.shape[1]])
@@ -702,19 +657,13 @@ def train_face(Img, CAE, batch_size):
             print  ("cost: %.8f" % avg_cost)
         if it % save_step == 0:
             CAE.save_model()
-            # iter = iter + 1
     return
 
 
 def test_face_multi(img1, img2, Label, DMVSC, lr, alpha, post_param1, post_param2, coef_save_path):
-    # alpha = max(0.4 - (num_class - 1) / 10 * 0.1, 0.1)
-    # print alpha
     DMVSC.initlization()
-    # DMVSC.restore()  # restore from pre-trained model
     display_step = 10
     max_step = display_step * 600  # 100+num_class*20
-    # lr = 1.0e-3
-    # fine-tune network
     
     epoch = 0
     batch_size = img1.shape[0]
@@ -792,10 +741,6 @@ if __name__ == '__main__':
     init_coef_file = './bbc_sport/bbcsport_2view_norm_data_ssc_init.mat'
     result_path = './bbc_sport/bbc_sport_result_without_init.mat'
 
-    # init_coef_path = './multiview_data/YaleB_first10_norm.mat'
-
-    # pretrain1 = 0
-    # pretrain2 = 0
     data = sio.loadmat(init_coef_file)
 
     X1 = data['X1']
@@ -806,10 +751,7 @@ if __name__ == '__main__':
     feat_size = np.array([X1.shape[0], X2.shape[0]])
     I1 = np.array(X1)
     I2 = np.array(X2)
-    # print I1
-    # print I1.type    
-    # print I1.shape[0]
-    # print I1.shape[1]
+
     Label = np.array(gt[:])
     Label = Label.flatten()
     pretrain_batchsize = int(num_sample / 5.0)
@@ -828,9 +770,8 @@ if __name__ == '__main__':
         CAE2 = ConvAE2(feature_size=feat_size[1], n_hidden=n_hidden, learning_rate=lr, batch_size=pretrain_batchsize, \
                        model_path=model_path2, restore_path=model_path2)
         train_face(I2, CAE2, pretrain_batchsize)
-    # exit(0)
+
     num_class = np.max(Label)
-    # randommax()
     
     tf.reset_default_graph()
     DMVSC = dmvsc(feature_size=feat_size, n_hidden=n_hidden, reg_constant1=reg1, re_constant2=reg2, re_constant3=reg3,
@@ -838,7 +779,6 @@ if __name__ == '__main__':
                   pretrain_model_path1=model_path1, pretrain_model_path2=model_path2, init_coef_file=init_coef_file)
     test_face_multi(I1, I2, Label, DMVSC, lr, alpha, post_param1, post_param2, result_path)
 
-    # def test_face_multi(img1, img2, img3, Label, DMVSC, lr, alpha, post_param1, post_param2, coef_save_path):
 
     print  "params config: "
     print  "reg1: %.2f" % reg1
@@ -851,7 +791,3 @@ if __name__ == '__main__':
     print  "post_param1: %d" % post_param1
     print  "post_param2: %d" % post_param2
     print "===================================================="    
-
-
-    # def __init__(self, feature_size, n_hidden, reg_constant1=1.0, re_constant2=1.0, re_constant3=1.0, batch_size=200, \
-    #              model_path=None, restore_path=None, logs_path='./logs', pretrain_model_path1=None, pretrain_model_path2=None, init_coef_file=None):
